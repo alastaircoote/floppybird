@@ -37,6 +37,9 @@ var highscore = 0;
 var pipeheight = 90;
 var pipewidth = 52;
 var pipes = new Array();
+var updaterate = 1000.0 / 60.0 ; //60 times a second
+var lastUpdateTime = null;
+var timeLastPipeAdded = null;
 
 var replayclickable = false;
 
@@ -136,9 +139,11 @@ function startGame()
    }
 
    //start up our loops
-   var updaterate = 1000.0 / 60.0 ; //60 times a second
-   loopGameloop = setInterval(gameloop, updaterate);
-   loopPipeloop = setInterval(updatePipes, 1400);
+   lastUpdateTime = Date.now();
+   timeLastPipeAdded = Date.now();
+   //loopGameloop = setInterval(gameloop, updaterate);
+   window.requestAnimationFrame(gameloop);
+   //loopPipeloop = setInterval(updatePipes, 1400);
    
    //jump from the start!
    playerJump();
@@ -153,12 +158,18 @@ function updatePlayer(player)
    $(player).css({ rotate: rotation, top: position });
 }
 
+
+
 function gameloop() {
+
+   var timeSinceLastUpdate = Date.now() - lastUpdateTime;
+   var ofUpdateRate = timeSinceLastUpdate / updaterate;
+
    var player = $("#player");
    
    //update the player speed/position
-   velocity += gravity;
-   position += velocity;
+   velocity += gravity * ofUpdateRate;
+   position += velocity * ofUpdateRate;
    
    //update the player
    updatePlayer(player);
@@ -199,7 +210,7 @@ function gameloop() {
    
    //we can't go any further without a pipe
    if(pipes[0] == null)
-      return;
+      return requestUpdate();
    
    //determine the bounding box of the next pipes inner area
    var nextpipe = pipes[0];
@@ -246,6 +257,16 @@ function gameloop() {
       //and score a point
       playerScore();
    }
+   requestUpdate();
+}
+
+var requestUpdate = function() {
+   lastUpdateTime = Date.now();
+   if (lastUpdateTime - timeLastPipeAdded > 1400) {
+      updatePipes();
+      timeLastPipeAdded = lastUpdateTime;
+   }
+   window.requestAnimationFrame(gameloop);
 }
 
 //Handle space bar
